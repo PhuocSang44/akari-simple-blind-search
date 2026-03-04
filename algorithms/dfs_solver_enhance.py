@@ -1,4 +1,4 @@
-"""DFS Solver for Light Up (Akari) with constraint propagation + MRV.
+"""DFS Solver for Light Up (Akari) with constraint propagation.
 
 Improvements over blind DFS
 ---------------------------
@@ -15,20 +15,10 @@ Improvements over blind DFS
    - ``required - current > |free_neighbours|``  →  can never be satisfied.
    - Any unlit cell with 0 legal placement candidates  →  dead end.
 
-4. **MRV target selection** (Minimum Remaining Values / fail-first):
-   The unlit cell with the *fewest* legal placement positions is explored
-   first.  Cells with 0 candidates are returned immediately so the caller
-   can detect the dead end instantly.
-
 Notes on search category
 ------------------------
-* Techniques 1-3 are **constraint propagation** - the search is still
-  blind / systematic / complete:  no solution is ever skipped.
-
-* Technique 4 is a *variable-ordering heuristic* (classic in CSP
-  literature).  The DFS tree shape changes but completeness is preserved.
-  This is **not** heuristic search in the A*/greedy sense - there is no
-  evaluation function estimating distance to goal.
+All three techniques are **constraint propagation** - the search is still
+blind / systematic / complete:  no solution is ever skipped.
 """
 
 from typing import List, Optional, Set, Tuple
@@ -43,56 +33,37 @@ from core.constraints import (
     is_goal_state,
 )
 
-
-# ======================================================================
 # Constraint propagation
-# ======================================================================
-
-def _free_neighbors(
-    board: Board,
-    state: State,
-    wall_pos: Position,
-    forbidden: Set[Position],
-) -> List[Position]:
-    """Empty neighbours of *wall_pos* that are neither bulbs nor forbidden."""
+def _free_neighbors(board, state, num_cell, forbidden: Set[Position]) -> List[Position]:
+    """Empty neighbours of *num_cell* that are neither bulbs nor forbidden."""
     return [
-        n for n in board.neighbors(wall_pos)
-        if board.is_empty(n)
-        and not state.has_bulb(n)
-        and n not in forbidden
+        pos for pos in board.neighbors(num_cell)
+        if board.is_empty(pos)
+        and not state.has_bulb(pos)
+        and pos not in forbidden
     ]
 
-
-def _propagate(
-    board: Board,
-    state: State,
-    forbidden: Set[Position],
-) -> Tuple[bool, List[Position]]:
+def _propagate(board, state, forbidden: Set[Position]) -> Tuple[bool, List[Position]]:
     """Iterative constraint propagation until fixpoint.
 
-    Iterates over numbered walls until fixpoint (no further changes):
+    Iterates over numbered cells until fixpoint (no further changes):
 
-    * **Forbidden** - wall already satisfied → remaining free neighbours
-      added to *forbidden* (they can never legally hold a bulb here).
+    * **Forbidden** - numbered cell already satisfied → remaining free neighbours added to *forbidden* (they can never legally hold a bulb here).
     * **Forced** - ``remaining_needed == len(free_neighbours)`` → every
       free neighbour *must* hold a bulb; placed immediately.
 
     * **Contradiction** detected when:
         - ``current > required``
         - ``remaining_needed > len(free_neighbours)``
-        - a forced placement is not legal (e.g. it would conflict with an
-          existing bulb's line of sight)
-
+        - a forced placement is not legal (e.g. it would conflict with an existing bulb's line of sight)
     Parameters
     ----------
-    forbidden:
-        Mutable set; updated **in place** with newly derived forbidden cells.
+    forbidden: Mutable set; updated **in place** with newly derived forbidden cells.
 
     Returns
     -------
     is_contradiction : bool
-    added_bulbs : list[Position]
-        Bulbs placed by propagation (caller must undo on backtrack).
+    added_bulbs : list[Position] - Bulbs placed by propagation (caller must undo on backtrack).
     """
     added: List[Position] = []
     changed = True
@@ -100,14 +71,14 @@ def _propagate(
     while changed:
         changed = False
 
-        for wall_pos in board.numbered_cells():
-            required = board.get_number(wall_pos)
-            current  = count_adjacent_bulbs(board, state, wall_pos)
+        for num_cell_pos in board.numbered_cells():
+            required = board.get_number(num_cell_pos)
+            current  = count_adjacent_bulbs(board, state, num_cell_pos)
 
             if current > required:
                 return True, added  # over-satisfied → contradiction
 
-            free      = _free_neighbors(board, state, wall_pos, forbidden)
+            free      = _free_neighbors(board, state, num_cell_pos, forbidden)
             remaining = required - current
 
             if remaining > len(free):
@@ -132,27 +103,10 @@ def _propagate(
 
     return False, added
 
-
-# ======================================================================
-# Candidate generation
-# ======================================================================
-
-def _candidates(
-    board: Board,
-    state: State,
-    forbidden: Set[Position],
-    target: Position,
-) -> List[Position]:
-    """Legal positions that would illuminate *target*, excluding forbidden cells.
-
-    A position qualifies when:
-    * It is an empty cell (not a wall).
-    * It has a clear line of sight to *target* (or *is* target).
-    * ``can_place_bulb`` returns True (no constraint violation, no conflict).
-    * It is not in *forbidden*.
-    """
-    seen: Set[Position] = set()
-    result: List[Position] = []
+def generate_candidates(board, state, forbidden: Set[Position], target) -> List[Position]:
+    """Legal positions that would illuminate *target*, excluding forbidden cells."""
+    seen = set()
+    result = []
 
     for pos in [target] + list(board.visible_cells(target)):
         if pos in seen:
@@ -167,51 +121,16 @@ def _candidates(
 
     return result
 
-
-# ======================================================================
-# Target selection - MRV (Minimum Remaining Values)
-# ======================================================================
-
-def _select_target(
-    board: Board,
-    state: State,
-    forbidden: Set[Position],
-) -> Optional[Position]:
-    """Pick the unlit white cell with the fewest legal placement candidates.
-
-    *Fail-first*: choosing the most constrained cell first leads to
-    contradictions earlier, pruning more of the search tree.
-
-    Returns ``None`` when every white cell is already illuminated.
-    Returns a cell with 0 candidates immediately (the caller will then
-    detect the dead end without further branching).
-    """
+def _select_unlit_cell(board, state) -> Optional[Position]:
     lit = compute_illumination(board, state)
-
-    best_pos:   Optional[Position] = None
-    best_count: int = float("inf")  # type: ignore[assignment]
-
     for cell in board.white_cells():
-        if cell in lit:
-            continue  # already illuminated → skip
+        if cell not in lit:
+            return cell
 
-        count = len(_candidates(board, state, forbidden, cell))
-
-        if count == 0:
-            return cell            # immediate dead-end detected
-        if count < best_count:
-            best_count = count
-            best_pos   = cell
-
-    return best_pos   # None  →  all cells illuminated
-
-
-# ======================================================================
-# Solver
-# ======================================================================
+    return None   # all cells illuminated
 
 class DFSSolver:
-    """DFS solver with constraint propagation and MRV variable ordering."""
+    """DFS solver with constraint propagation (forced/forbidden cells + dead-end detection)."""
 
     def __init__(self) -> None:
         self.nodes_expanded: int = 0
@@ -226,12 +145,7 @@ class DFSSolver:
             "solved":         solution is not None,
         }
 
-    def _dfs(
-        self,
-        board: Board,
-        state: State,
-        forbidden: Set[Position],
-    ) -> Optional[State]:
+    def _dfs(self, board, state, forbidden: Set[Position]) -> Optional[State]:
         self.nodes_expanded += 1
 
         # ── Constraint propagation (forced + forbidden) ───────────────
@@ -250,18 +164,18 @@ class DFSSolver:
             if is_goal_state(board, state):
                 return state.copy()   # copy captures forced bulbs too
 
-            # ── Target selection (MRV) ────────────────────────────────
-            target = _select_target(board, state, local_forbidden)
+            # ── Target selection (first unlit cell) ──────────────────
+            target = _select_unlit_cell(board, state)
 
             if target is None:
                 # All cells illuminated but goal test failed → dead end.
                 return None
 
             # ── Candidate generation ──────────────────────────────────
-            candidates = _candidates(board, state, local_forbidden, target)
+            candidates = generate_candidates(board, state, local_forbidden, target)
 
             if not candidates:
-                # _select_target returned a 0-candidate cell → dead end.
+                # _select_unlit_cell returned a 0-candidate cell → dead end.
                 return None
 
             # ── Branch and backtrack ──────────────────────────────────

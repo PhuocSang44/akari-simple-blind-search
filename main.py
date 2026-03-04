@@ -34,17 +34,17 @@ def test_puzzle(path: str) -> None:
     for line in str(board).splitlines():
         print(f"    {line}")
 
-    # time measurement
-    result, elapsed = time_execution(run_dfs, board)
-
-    # memory measurement (re-run to capture peak allocation)
-    _, peak_bytes = measure_memory(run_dfs, board)
-
-        # time measurement
-    # result, elapsed = time_execution(run_dfs_enhanced, board)
+    # # time measurement
+    # result, elapsed = time_execution(run_dfs, board)
 
     # # memory measurement (re-run to capture peak allocation)
-    # _, peak_bytes = measure_memory(run_dfs_enhanced, board)
+    # _, peak_bytes = measure_memory(run_dfs, board)
+
+    # time measurement
+    result, elapsed = time_execution(run_dfs_enhanced, board)
+
+    # memory measurement (re-run to capture peak allocation)
+    _, peak_bytes = measure_memory(run_dfs_enhanced, board)
 
     solved   = result["solved"]
     nodes    = result["nodes_expanded"]
