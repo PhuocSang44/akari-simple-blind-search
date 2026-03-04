@@ -11,7 +11,7 @@ Improvements over blind DFS
    no branch will ever try them).
 
 3. **Early dead-end detection** (contradiction check):
-   - ``current_bulbs > required``  →  wall over-satisfied.
+   - ``current_bulbs > required``  →  numbered cell over-satisfied.
    - ``required - current > |free_neighbours|``  →  can never be satisfied.
    - Any unlit cell with 0 legal placement candidates  →  dead end.
 

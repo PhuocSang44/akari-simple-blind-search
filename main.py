@@ -97,11 +97,22 @@ def collect_puzzle_files() -> list:
     return files
 
 def main() -> None:
+    args = sys.argv[1:]
+
+    # ── GUI mode: python main.py --ui [puzzle] ────────────────────
+    if "--ui" in args:
+        args_copy = [a for a in args if a != "--ui"]
+        puzzle_hint = args_copy[0] if args_copy else None
+        from ui.game_ui import AkariUI
+        app = AkariUI(initial_puzzle=puzzle_hint)
+        app.run()
+        return
+
+    # ── CLI mode (original behaviour) ─────────────────────────────
     print("\nLight Up (Akari) -- DFS Solver")
     print("Legend: B=bulb  *=illuminated  .=dark  #=wall  0-4=numbered wall")
     print("Usage : python main.py [puzzle_name_or_path]")
-
-    args = sys.argv[1:]
+    print("        python main.py --ui [puzzle]   (graphical mode)")
 
     if args:
         # single file mode
