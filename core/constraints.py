@@ -47,15 +47,15 @@ def number_constraint_violations(board: Board, state: State) -> int:
         total += abs(required - actual)
     return total
 
-def bulb_conflicts(board: Board, state: State) -> int:
-    conflicts = 0
-    bulbs = state.bulb_positions()
-    for bulb_pos in bulbs:
-        for visible in board.visible_cells(bulb_pos):
-            if visible in bulbs:
-                conflicts += 1
-    # Each conflict is discovered twice (A sees B, B sees A).
-    return conflicts // 2
+# def bulb_conflicts(board: Board, state: State) -> int:
+#     conflicts = 0
+#     bulbs = state.bulb_positions()
+#     for bulb_pos in bulbs:
+#         for visible in board.visible_cells(bulb_pos):
+#             if visible in bulbs:
+#                 conflicts += 1
+#     # Each conflict is discovered twice (A sees B, B sees A).
+#     return conflicts // 2
 
 def is_goal_state(board: Board, state: State):
     # Condition 3 – no bulb conflicts.

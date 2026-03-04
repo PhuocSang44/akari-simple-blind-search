@@ -27,14 +27,17 @@ class Board:
         for r in range(self._height):
             for c in range(self._width):
                 pos = (r, c)
-                # neighbors
+
+                # neighbors, wall cells included
                 nbrs = []
                 for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     nr, nc = r + dr, c + dc
                     if 0 <= nr < self._height and 0 <= nc < self._width:
                         nbrs.append((nr, nc))
+
                 self._neighbors_cache[pos] = nbrs
-                # visible cells (ray-cast in 4 directions, stop at walls)
+
+                # visible cells (4 directions, stop at walls or end of board)
                 vis = []
                 for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
                     nr, nc = r + dr, c + dc
@@ -131,15 +134,10 @@ class Board:
         return self._grid[r][c] == "." #empty cell (white cell)
 
     def neighbors(self, pos: Position) -> List[Position]:
-        "Neighbor is up/down/left/right adjacent cell (regardless of walls)."
+        """Neighbor is up/down/left/right adjacent cell including walls"""
         return self._neighbors_cache[pos]
 
     def visible_cells(self, pos: Position) -> List[Position]:
-        """Return all cells visible from *pos* in four cardinal directions.
-        A cell is visible if it can be reached by moving in a straight line
-        without crossing a wall.  The starting cell itself is **not** included.
-        Walls are not included.
-        """
         return self._visible_cache[pos]
 
     def white_cells(self) -> List[Position]:
@@ -151,6 +149,3 @@ class Board:
     def __str__(self) -> str:
         """Return a printable grid using the original cell characters."""
         return "\n".join(" ".join(row) for row in self._grid)
-
-    def __repr__(self) -> str:  # pragma: no cover
-        return f"Board({self._width}x{self._height})"

@@ -1,6 +1,3 @@
-"""Shared type definitions for the Light Up (Akari) puzzle."""
-
-from typing import Tuple
-
-# A position on the board represented as (row, column), 0-indexed.
-Position = Tuple[int, int]
+#A position on the board represented as (row, column), 0-indexed.
+#python 3.9+, type alias
+Position = tuple[int, int]
