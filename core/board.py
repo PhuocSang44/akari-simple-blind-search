@@ -148,4 +148,9 @@ class Board:
     def numbered_cells(self) -> List[Position]:
         return list(self._numbered_cells)
 
+    def __str__(self) -> str:
+        """Return a printable grid using the original cell characters."""
+        return "\n".join(" ".join(row) for row in self._grid)
 
+    def __repr__(self) -> str:  # pragma: no cover
+        return f"Board({self._width}x{self._height})"
