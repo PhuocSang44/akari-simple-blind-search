@@ -1,17 +1,12 @@
 import sys
 import os
 
-from algorithms.a_star_solver import AStarSolver
 from algorithms.a_star_solver_enhanced import AStarSolverEnhanced
 from core.board import Board
 from core.constraints import is_goal_state
 from core.utils import time_execution, measure_memory, render_state
 
 PUZZLES_DIR = "puzzles"
-
-def run_a_star(board):
-    solver = AStarSolver()
-    return solver.solve(board)
 
 def run_a_star_enhanced(board):
     solver = AStarSolverEnhanced()
@@ -33,46 +28,24 @@ def test_puzzle(path: str) -> None:
     for line in str(board).splitlines():
         print(f"    {line}")
 
-    # result, elapsed = time_execution(run_a_star, board)
-    # _, peak_bytes = measure_memory(run_a_star, board)
-    #
-    # solved   = result["solved"]
-    # nodes    = result["nodes_expanded"]
-    # solution = result["solution"]
-    #
-    # print(f"\n  ── A* (original) ──")
-    # print(f"  Solved        : {solved}")
-    # print(f"  Nodes expanded: {nodes}")
-    # print(f"  Time elapsed  : {elapsed * 1000:.3f} ms")
-    # print(f"  Peak memory   : {peak_bytes / 1024:.2f} KB")
-    #
-    # if solution:
-    #     valid = is_goal_state(board, solution)
-    #     print(f"  Goal verified : {valid}")
-    #     print(f"\n  Solution board:\n")
-    #     for line in render_state(board, solution).splitlines():
-    #         print(f"    {line}")
-    # else:
-    #     print("  No solution found.")
+    result, elapsed = time_execution(run_a_star_enhanced, board)
+    _, peak_bytes = measure_memory(run_a_star_enhanced, board)
 
-    result2, elapsed2 = time_execution(run_a_star_enhanced, board)
-    _, peak_bytes2 = measure_memory(run_a_star_enhanced, board)
-
-    solved2   = result2["solved"]
-    nodes2    = result2["nodes_expanded"]
-    solution2 = result2["solution"]
+    solved   = result["solved"]
+    nodes    = result["nodes_expanded"]
+    solution = result["solution"]
 
     print(f"\n  ── A* Enhanced (with constraint propagation) ──")
-    print(f"  Solved        : {solved2}")
-    print(f"  Nodes expanded: {nodes2}")
-    print(f"  Time elapsed  : {elapsed2 * 1000:.3f} ms")
-    print(f"  Peak memory   : {peak_bytes2 / 1024:.2f} KB")
+    print(f"  Solved        : {solved}")
+    print(f"  Nodes expanded: {nodes}")
+    print(f"  Time elapsed  : {elapsed * 1000:.3f} ms")
+    print(f"  Peak memory   : {peak_bytes / 1024:.2f} KB")
 
-    if solution2:
-        valid2 = is_goal_state(board, solution2)
-        print(f"  Goal verified : {valid2}")
+    if solution:
+        valid = is_goal_state(board, solution)
+        print(f"  Goal verified : {valid}")
         print(f"\n  Solution board:\n")
-        for line in render_state(board, solution2).splitlines():
+        for line in render_state(board, solution).splitlines():
             print(f"    {line}")
     else:
         print("  No solution found.")
@@ -110,11 +83,22 @@ def collect_puzzle_files() -> list:
     return files
 
 def main() -> None:
+    args = sys.argv[1:]
+
+    # ── GUI mode: python run.py --ui [puzzle] ─────────────────────
+    if "--ui" in args:
+        args_copy = [a for a in args if a != "--ui"]
+        puzzle_hint = args_copy[0] if args_copy else None
+        from ui.game_ui import AkariUI
+        app = AkariUI(initial_puzzle=puzzle_hint)
+        app.run()
+        return
+
+    # ── CLI mode (original behaviour) ─────────────────────────────
     print("\nLight Up (Akari) -- A* Solver")
     print("Legend: B=bulb  *=illuminated  .=dark  #=wall  0-4=numbered wall")
     print("Usage : python run.py [puzzle_name_or_path]")
-
-    args = sys.argv[1:]
+    print("        python run.py --ui [puzzle]   (graphical mode)")
 
     if args:
         # single file mode
