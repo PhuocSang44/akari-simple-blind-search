@@ -110,7 +110,7 @@ def collect_puzzle_files() -> list:
     return files
 
 def main() -> None:
-    print("\nLight Up (Akari) -- DFS Solver")
+    print("\nLight Up (Akari) -- A* Solver")
     print("Legend: B=bulb  *=illuminated  .=dark  #=wall  0-4=numbered wall")
     print("Usage : python run.py [puzzle_name_or_path]")
 

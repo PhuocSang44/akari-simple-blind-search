@@ -1,19 +1,4 @@
-"""A* Solver (Enhanced) for Light Up (Akari) with constraint propagation.
-
-Same improvements as DFS Enhanced, applied to A*:
-1. **Forced-cell propagation**: numbered walls with exactly k free
-   neighbours needing k more bulbs → all forced immediately.
-2. **Forbidden-cell propagation**: satisfied numbered walls → remaining
-   free neighbours are forbidden.
-3. **Early dead-end detection**: over-satisfied walls, impossible walls,
-   and unlit cells with 0 candidates are pruned immediately.
-4. **Smart branching**: find one unlit cell, try only legal candidates
-   that can illuminate it (same as DFS enhanced).
-5. **Proper A* heuristic**: f(n) = g(n) + h(n) where h(n) = actual
-   unlit cells on the board.
-"""
-
-from typing import List, Optional, Set, Tuple
+from typing import List, Optional, Set
 
 from core.board import Board
 from core.state import State
@@ -39,12 +24,10 @@ def _free_neighbors(board, state, num_cell, forbidden: Set[Position]) -> List[Po
     ]
 
 
-def _propagate(board, state, forbidden: Set[Position]) -> Tuple[bool, List[Position]]:
+def _propagate(board, state, forbidden: Set[Position]) -> bool:
     """Iterative constraint propagation until fixpoint.
-
-    Returns (is_contradiction, list_of_forced_bulbs).
+    Returns is_contradiction.
     """
-    added: List[Position] = []
     changed = True
 
     while changed:
@@ -55,13 +38,14 @@ def _propagate(board, state, forbidden: Set[Position]) -> Tuple[bool, List[Posit
             current = count_adjacent_bulbs(board, state, num_cell_pos)
 
             if current > required:
-                return True, added  # over-satisfied
+                return True  # over-satisfied
 
             free = _free_neighbors(board, state, num_cell_pos, forbidden)
             remaining = required - current
 
+            #used when there is errors in the initial problem
             if remaining > len(free):
-                return True, added  # impossible to satisfy
+                return True  # impossible to satisfy
 
             if remaining == 0:
                 for n in free:
@@ -72,12 +56,11 @@ def _propagate(board, state, forbidden: Set[Position]) -> Tuple[bool, List[Posit
             elif remaining == len(free):
                 for n in free:
                     if not can_place_bulb(board, state, n):
-                        return True, added
+                        return True
                     state.add_bulb(n)
-                    added.append(n)
                     changed = True
 
-    return False, added
+    return False
 
 
 # ── Candidate / target helpers ──────────────────────────────────────
@@ -91,15 +74,9 @@ def _select_unlit_cell(board, state) -> Optional[Position]:
 
 
 def _generate_candidates(board, state, forbidden: Set[Position], target) -> List[Position]:
-    seen = set()
     result = []
     for pos in [target] + list(board.visible_cells(target)):
-        if pos in seen:
-            continue
-        seen.add(pos)
-        if not board.is_empty(pos):
-            continue
-        if state.has_bulb(pos) or pos in forbidden:
+        if pos in forbidden:
             continue
         if can_place_bulb(board, state, pos):
             result.append(pos)
@@ -110,15 +87,10 @@ def _generate_candidates(board, state, forbidden: Set[Position], target) -> List
 
 class _AStarNode:
     """Wraps a State with its f(n) score and propagation info for the heap."""
-
-    __slots__ = ("state", "f_n", "forced_bulbs", "forbidden")
-
     def __init__(self, state: State, f_n: float,
-                 forced_bulbs: List[Position],
                  forbidden: Set[Position]) -> None:
         self.state = state
         self.f_n = f_n
-        self.forced_bulbs = forced_bulbs
         self.forbidden = forbidden
 
     def __lt__(self, other: "_AStarNode") -> bool:
@@ -154,14 +126,11 @@ class AStarSolverEnhanced:
     def _make_node(self, board: Board, state: State) -> Optional[_AStarNode]:
         """Apply propagation, compute f(n), return node or None if contradiction."""
         forbidden = set()
-        contradiction, forced_bulbs = _propagate(board, state, forbidden)
+        contradiction = _propagate(board, state, forbidden)
         if contradiction:
-            # Undo forced bulbs before discarding.
-            for pos in forced_bulbs:
-                state.remove_bulb(pos)
             return None
         f_n = self._f(board, state)
-        return _AStarNode(state, f_n, forced_bulbs, forbidden)
+        return _AStarNode(state, f_n, forbidden)
 
     def _a_star(self, board: Board, init_state: State) -> Optional[State]:
         frontier: list = []
@@ -172,17 +141,13 @@ class AStarSolverEnhanced:
         heapq.heappush(frontier, root)
 
         while frontier:
-            node = heapq.heappop(frontier)
+            node = heapq.heappop(frontier) # _AStarNode
             state = node.state
             self.nodes_expanded += 1
 
             # ── Goal check ────────────────────────────────────────────
             if is_goal_state(board, state):
-                result = state.copy()
-                # Undo forced bulbs so state stays clean.
-                for pos in node.forced_bulbs:
-                    state.remove_bulb(pos)
-                return result
+                return state.copy()
 
             # ── Target selection ──────────────────────────────────────
             target = _select_unlit_cell(board, state)
@@ -198,10 +163,6 @@ class AStarSolverEnhanced:
                     child_node = self._make_node(board, child_state)
                     if child_node is not None:
                         heapq.heappush(frontier, child_node)
-
-            # ── Undo forced bulbs from this node ──────────────────────
-            for pos in node.forced_bulbs:
-                state.remove_bulb(pos)
 
         return None
 
