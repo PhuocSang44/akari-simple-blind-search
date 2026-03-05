@@ -19,9 +19,7 @@ from __future__ import annotations
 import queue
 import threading
 import time
-from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Dict, List, Optional, Set
+from typing import List, Optional, Set
 
 from core.board import Board
 from core.constraints import (
@@ -32,37 +30,10 @@ from core.constraints import (
 )
 from core.state import State
 from core.types import Position
+from algorithms.visual_common import Step, StepType
 
 import heapq
 
-
-# ── Step data ────────────────────────────────────────────────────
-
-class StepType(Enum):
-    START           = auto()
-    POP_NODE        = auto()   # node popped from frontier
-    PLACE_BULB      = auto()   # candidate bulb placed (child created)
-    FORCED_BULB     = auto()   # constraint propagation
-    FORBIDDEN       = auto()   # cell marked forbidden
-    CONTRADICTION   = auto()   # dead-end detected
-    GOAL_CHECK      = auto()
-    SOLVED          = auto()
-    NO_SOLUTION     = auto()
-
-
-@dataclass
-class Step:
-    step_type: StepType
-    position: Optional[Position] = None
-    nodes_expanded: int = 0
-    frontier_size: int = 0
-    bulb_count: int = 0
-    f_n: float = 0.0
-    message: str = ""
-    bulb_positions: Set[Position] = field(default_factory=set)
-    lit_cells: Set[Position] = field(default_factory=set)
-    elapsed: float = 0.0
-    candidates: List[Position] = field(default_factory=list)
 
 
 class _SolverStopped(Exception):
