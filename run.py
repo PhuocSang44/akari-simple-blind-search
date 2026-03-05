@@ -2,16 +2,19 @@ import sys
 import os
 
 from algorithms.a_star_solver import AStarSolver
+from algorithms.a_star_solver_enhanced import AStarSolverEnhanced
 from core.board import Board
 from core.constraints import is_goal_state
 from core.utils import time_execution, measure_memory, render_state
-from algorithms.dfs_solver import DFSSolver
-from algorithms.dfs_solver_enhance import DFSSolver as DFSSolverEnhanced
 
 PUZZLES_DIR = "puzzles"
 
 def run_a_star(board):
     solver = AStarSolver()
+    return solver.solve(board)
+
+def run_a_star_enhanced(board):
+    solver = AStarSolverEnhanced()
     return solver.solve(board)
 
 def test_puzzle(path: str) -> None:
@@ -30,23 +33,46 @@ def test_puzzle(path: str) -> None:
     for line in str(board).splitlines():
         print(f"    {line}")
 
-    result, elapsed = time_execution(run_a_star, board)
-    _, peak_bytes = measure_memory(run_a_star, board)
+    # result, elapsed = time_execution(run_a_star, board)
+    # _, peak_bytes = measure_memory(run_a_star, board)
+    #
+    # solved   = result["solved"]
+    # nodes    = result["nodes_expanded"]
+    # solution = result["solution"]
+    #
+    # print(f"\n  ── A* (original) ──")
+    # print(f"  Solved        : {solved}")
+    # print(f"  Nodes expanded: {nodes}")
+    # print(f"  Time elapsed  : {elapsed * 1000:.3f} ms")
+    # print(f"  Peak memory   : {peak_bytes / 1024:.2f} KB")
+    #
+    # if solution:
+    #     valid = is_goal_state(board, solution)
+    #     print(f"  Goal verified : {valid}")
+    #     print(f"\n  Solution board:\n")
+    #     for line in render_state(board, solution).splitlines():
+    #         print(f"    {line}")
+    # else:
+    #     print("  No solution found.")
 
-    solved   = result["solved"]
-    nodes    = result["nodes_expanded"]
-    solution = result["solution"]
+    result2, elapsed2 = time_execution(run_a_star_enhanced, board)
+    _, peak_bytes2 = measure_memory(run_a_star_enhanced, board)
 
-    print(f"\n  Solved        : {solved}")
-    print(f"  Nodes expanded: {nodes}")
-    print(f"  Time elapsed  : {elapsed * 1000:.3f} ms")
-    print(f"  Peak memory   : {peak_bytes / 1024:.2f} KB")
+    solved2   = result2["solved"]
+    nodes2    = result2["nodes_expanded"]
+    solution2 = result2["solution"]
 
-    if solution:
-        valid = is_goal_state(board, solution)
-        print(f"  Goal verified : {valid}")
+    print(f"\n  ── A* Enhanced (with constraint propagation) ──")
+    print(f"  Solved        : {solved2}")
+    print(f"  Nodes expanded: {nodes2}")
+    print(f"  Time elapsed  : {elapsed2 * 1000:.3f} ms")
+    print(f"  Peak memory   : {peak_bytes2 / 1024:.2f} KB")
+
+    if solution2:
+        valid2 = is_goal_state(board, solution2)
+        print(f"  Goal verified : {valid2}")
         print(f"\n  Solution board:\n")
-        for line in render_state(board, solution).splitlines():
+        for line in render_state(board, solution2).splitlines():
             print(f"    {line}")
     else:
         print("  No solution found.")
