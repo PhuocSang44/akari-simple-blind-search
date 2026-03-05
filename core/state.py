@@ -20,7 +20,7 @@ class State:
                  f_n_value: int = None) -> None:
         """Create an empty state (no bulbs placed)."""
         self._bulbs: Set[Position] = set() \
-            if curr_bulbs is None else curr_bulbs #added for A*
+            if curr_bulbs is None else curr_bulbs  # added for A*
 
         # used in A*
         self._curr_white_cells: list = curr_white_cells if curr_white_cells is not None else []
@@ -45,7 +45,7 @@ class State:
         new_state._bulbs = set(self._bulbs)
 
         new_state._curr_white_cells = list(self._curr_white_cells) \
-            if self._curr_white_cells else []  #added for A*
+            if self._curr_white_cells else []  # added for A*
 
         new_state._f_n = self._f_n
 
@@ -59,6 +59,8 @@ class State:
 
     def __lt__(self, other):
         return self._f_n < other.get_f_n()
+
+
 """
 import heapq
 
@@ -159,7 +161,7 @@ class State:
         successors.append(State(board, next_r, next_c, self.g_n))
 
         return successors
-        
+
 """
 """
 SELF DEFINITIONS
@@ -296,4 +298,3 @@ class Board:
         for row in self.grid:
             print(" ".join(row))
 """
-    
