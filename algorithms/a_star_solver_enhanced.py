@@ -23,7 +23,6 @@ def _free_neighbors(board, state, num_cell, forbidden: Set[Position]) -> List[Po
         and pos not in forbidden
     ]
 
-
 def _propagate(board, state, forbidden: Set[Position]) -> bool:
     """Iterative constraint propagation until fixpoint.
     Returns is_contradiction.
