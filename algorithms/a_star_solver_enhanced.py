@@ -164,4 +164,3 @@ class AStarSolverEnhanced:
                         heapq.heappush(frontier, child_node)
 
         return None
-
